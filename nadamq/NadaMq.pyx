@@ -1,17 +1,17 @@
-#cython: embedsignature=True
+# cython: embedsignature = True
+# cython: language_level = 3
+# distutils: language = c++
+# distutils: libraries = c++
 cimport cython
-from cython.view cimport array as cvarray
 from cython.operator cimport dereference as deref
-from libcpp.string cimport string
 from libc.stdint cimport uint16_t
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
+from libcpp.string cimport string
 
-import re
+from cpython.bytes cimport PyBytes_AS_STRING
 
-from builtins import bytes
 import numpy as np
-
 
 ctypedef unsigned char uchar
 ctypedef uint16_t crc_t
@@ -23,7 +23,7 @@ cdef class _Flags:
         readonly string START
 
     def __cinit__(self):
-        self.START = '|||'
+        self.START = '|||'.encode('utf-8')
 
 
 @cython.internal
@@ -116,14 +116,11 @@ cdef class cPacket:
                 # Caller supplied a buffer, so check to make sure that the
                 # length of the buffer is long enough to hold `data`.
                 if len(buffer_) < len(data):
-                    raise ValueError('Supplied buffer is not long enough to '
-                                     'hold `data`, %d < %d' % (len(buffer_),
-                                                               len(data)))
+                    raise ValueError(f'Supplied buffer is not long enough to hold `data`, {len(buffer_)} < {len(data)}')
+
                 elif buffer_size is not None:
-                    raise ValueError('Buffer size must not be specified when a'
-                                     ' buffer is supplied, since the size is '
-                                     'implied by the size of the provided '
-                                     'buffer.')
+                    raise ValueError('Buffer size must not be specified when a buffer is supplied, since the size is '
+                                     'implied by the size of the provided buffer.')
                 else:
                     self.set_buffer(buffer_)
             elif buffer_size is None:
@@ -131,10 +128,11 @@ cdef class cPacket:
                 # of `data` as implied buffer size, or length of one if `data`
                 # has a length of zero.
                 buffer_size = max(len(data), 1)
+
+        self.buffer_ = NULL
         if buffer_size is not None and buffer_size > 0:
             self.alloc_buffer(buffer_size)
-        else:
-            self.buffer_ = NULL
+
         self.iuid = iuid
         self.type_ = type_
         if data is not None:
@@ -145,7 +143,7 @@ cdef class cPacket:
             return (1 << (sizeof(self.thisptr.buffer_size_) << 3)) - 1
 
     def set_data(self, string data):
-        '''
+        """
         Write the provided data to the buffer.
 
         Notes
@@ -156,54 +154,53 @@ cdef class cPacket:
           the size of the buffer.
          - This method updates the CRC checksum of the packet, based on the new
           payload contents.
-        '''
+        """
         if data.size() > self.thisptr.buffer_size_:
-            raise ValueError('Data length is too large for buffer, %s > %s' %
-                             (data.size(), self.thisptr.buffer_size_))
+            raise ValueError(f'Data length is too large for buffer, {data.size()} > {self.thisptr.buffer_size_}')
+
         memcpy(self.thisptr.payload_buffer_, data.c_str(), data.size())
         self.thisptr.payload_length_ = data.size()
         self.thisptr.compute_crc()
 
     def data(self):
-        '''
+        """
         Return the payload of the packet as a byte string.
-        '''
+        """
         return self.thisptr.data()
 
     def data_ptr(self):
-        '''
+        """
         Return the pointer to the payload buffer.
-        '''
+        """
         return <size_t>self.thisptr.payload_buffer_
 
-    def tostring(self):
-        '''
-        Serialize packet according to format defined in the `write_packet` C++
-        function.
-
-        Returns
-        -------
-        str
-            Serialized packet.
-        '''
-        cdef stringstream output
-        write_packet(output, deref(self.thisptr))
-        return output.str_()
-
-    def tobytes(self):
-        '''
-        Serialize packet according to format defined in the `write_packet` C++
+    def tobytes(self) -> bytes:
+        """
+        Serialize a packet according to format defined in the `write_packet` C++
         function.
 
         Returns
         -------
         bytes
             Serialized packet.
+        """
+        return self.tostring()
+
+    def tostring(self) -> bytes:
+        """
+        Serialize a packet according to format defined in the `write_packet` C++ function.
+
+        Returns
+        -------
+        str
+            Serialized packet.
 
 
         .. versionadded:: 0.15
-        '''
-        return bytes(self.tostring())
+        """
+        cdef stringstream output
+        write_packet(output, deref(self.thisptr))
+        return output.str_()
 
     property crc:
         def __get__(self):
@@ -226,50 +223,48 @@ cdef class cPacket:
             return self.thisptr.buffer_size_
 
     def clear_buffer(self):
-        '''
+        """
         Deallocate buffer (if it has been allocated).
-        '''
+        """
         if self.buffer_ != NULL:
             free(self.buffer_)
             self.buffer_ = NULL
 
     def realloc_buffer(self, buffer_size):
-        '''
+        """
         Allocate the specified buffer size, deallocating the existing buffer,
         if one has been allocated.
-        '''
+        """
         if buffer_size > self.max_buffer_size:
-            raise RuntimeError('Max buffer size is %d' % self.max_buffer_size)
+            raise RuntimeError(f'Max buffer size is {self.max_buffer_size}')
         self.clear_buffer()
         self.alloc_buffer(buffer_size)
 
     def alloc_buffer(self, buffer_size):
-        '''
+        """
         Allocate the specified buffer size.
-        '''
+        """
         if self.buffer_ != NULL:
             raise RuntimeError('Buffer has already been allocated.')
         if buffer_size > self.max_buffer_size:
-            raise RuntimeError('Max buffer size is %d' % self.max_buffer_size)
+            raise RuntimeError(f'Max buffer size is {self.max_buffer_size}')
         self.buffer_ = <unsigned char *>malloc(buffer_size)
-        self.set_buffer(<unsigned char [:buffer_size]>self.buffer_,
-                        overwrite=True)
+        self.set_buffer(<unsigned char [:buffer_size]>self.buffer_, overwrite=True)
         self.thisptr.buffer_size_ = buffer_size
 
     def set_buffer(self, unsigned char [:] data, overwrite=False):
-        '''
+        """
         Assign the specified data buffer as the payload buffer of the packet.
-        '''
+        """
         if self.thisptr.payload_buffer_ != NULL and not overwrite:
             raise RuntimeError('Packet already has a payload buffer '
-                               'allocated.  Must use `overwrite=True` to set '
-                               'buffer anyway.')
+                               'allocated.  Must use `overwrite=True` to set buffer anyway.')
         self.thisptr.payload_buffer_ = &data[0]
         self.thisptr.buffer_size_ = len(data)
         self.thisptr.payload_length_ = 0
 
     def __dealloc__(self):
-        del self.thisptr
+        free(self.thisptr)
         self.clear_buffer()
 
     def __str__(self):
@@ -286,18 +281,17 @@ cdef class cPacketParser:
         self.reset()
 
     def __dealloc__(self):
-        del self.thisptr
+        free(self.thisptr)
 
     def reset(self):
         self.thisptr.reset((<cPacket>self.packet).thisptr)
 
     def parse(self, uchar [:] packet_buffer):
         cdef int i
-        for i in xrange(len(packet_buffer)):
+        for i in range(len(packet_buffer)):
             self.thisptr.parse_byte(<uchar *>&packet_buffer[i])
             if self.error:
-                raise RuntimeError, ('Error parsing packet [byte=%d]: %s' %
-                                     (i, np.asarray(packet_buffer).tostring()))
+                raise RuntimeError(f'Error parsing packet [byte={i}]: {np.asarray(packet_buffer).tobytes()}')
             elif self.message_completed:
                 return self.packet
         return False
@@ -330,20 +324,18 @@ def crc_update(uint16_t crc, uchar [:] data):
 def crc_update_byte(uint16_t crc, uchar octet):
     return c_crc_update_byte(crc, octet)
 
-
 def compute_crc16(data):
     cdef string data_ = data
     cdef uint16_t crc = crc_init()
     crc = c_crc_update(crc, <uchar *>data_.c_str(), len(data))
     return crc_finalize(crc)
 
-
 def byte_pair(value):
-    return (chr((value >> 8) & 0x0FF), chr(value & 0x0FF))
+    return chr((value >> 8) & 0x0FF), chr(value & 0x0FF)
 
 
 def parse_from_string(packet_str):
-    '''
+    """
     .. versionchanged:: 0.15
         Coerce :data:`packet_str` to :class:`bytes` and do not use :func:`ord`
         to decode characters.  This is required to support both Python 2 and 3.
@@ -353,10 +345,9 @@ def parse_from_string(packet_str):
     -------
     cPacket
         Parsed packet instance.
-    '''
+    """
     parser = cPacketParser()
-    return parser.parse(np.array([v for v in bytes(packet_str)],
-                                 dtype='uint8'))
+    return parser.parse(np.array([v for v in bytes(packet_str)], dtype='uint8'))
 
 
 PACKET_NAME_BY_TYPE = {PACKET_TYPE_NONE: 'NONE',

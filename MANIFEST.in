@@ -1,5 +1,4 @@
 include setup.py
-include paver-minilib.zip
 recursive-include nadamq src/packet_actions.cpp
 recursive-include nadamq lib/*
 recursive-include nadamq *.pyx
@@ -8,5 +7,7 @@ recursive-include nadamq *.h
 recursive-include nadamq *.c
 recursive-exclude nadamq *.pyc
 recursive-exclude nadamq *~
+exclude .DS_Store
+recursive-exclude nadamq .DS_Store
 include versioneer.py
 include nadamq/_version.py

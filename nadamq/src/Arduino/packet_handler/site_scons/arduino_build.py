@@ -50,7 +50,6 @@ import json
 from path_helpers import path
 from SCons.Environment import Environment
 from SCons.Builder import Builder
-import six
 
 
 def run(cmd):
@@ -105,7 +104,7 @@ def get_lib_candidate_list(sketch_path, arduino_version):
     return lib_candidates
 
 
-class ArduinoBuildContext(object):
+class ArduinoBuildContext:
     def __init__(self, scons_arguments, build_root=None):
         try:
             self.config = json.load(open('arscons.json'))
@@ -299,7 +298,7 @@ class ArduinoBuildContext(object):
             print(('ERROR! the given board name, %s is not in the supported '
                    'board list:' % board_name))
             print("all available board names are:")
-            for name, description in six.iteritems(boards):
+            for name, description in boards.items():
                 print("\t%s for %s" % (name.ljust(14), description[0]))
             #print "however, you may edit %s to add a new board." % ARDUINO_CONF
             sys.exit(-1)
@@ -352,7 +351,7 @@ class ArduinoBuildContext(object):
         if hw_variant:
             env_defaults['CPPPATH'].append(hw_variant)
 
-        for k, v in six.iteritems(kwargs):
+        for k, v in kwargs.items():
             print('processing kwarg: %s->%s' % (k, v))
             if k in env_defaults and isinstance(env_defaults[k], dict)\
                     and isinstance(v, dict):
@@ -507,7 +506,7 @@ class ArduinoBuildContext(object):
                 if result:
                     prototypes[result.group(1)] = result.group(2)
 
-        for name in six.iterkeys(prototypes):
+        for name in prototypes.items():
             print('%s;' % name)
             wp.write('%s;\n' % name)
 

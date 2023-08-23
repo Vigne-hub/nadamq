@@ -1,13 +1,14 @@
-from __future__ import absolute_import
-from __future__ import print_function
+# -*- encoding: utf-8 -*-
 import sys
 import re
-from cStringIO import StringIO
+from io import StringIO
+from typing import TextIO, Optional
+from argparse import ArgumentParser
 
 from path_helpers import path
 
 
-def generate_ragel_events_header(input_path, output):
+def generate_ragel_events_header(input_path: str, output: TextIO) -> TextIO:
     print('''\
 #ifndef ___PACKET_SOCKET_EVENTS__HPP___
 #define ___PACKET_SOCKET_EVENTS__HPP___
@@ -19,10 +20,9 @@ inline std::string event_label(uint8_t event) {
 ''', file=output)
 
     with open('packet_socket_fsm.rl', 'rb') as input_file:
-        cre_event = re.compile(r"^\s+(?P<label>\w+).*(?P<char>'.');",
-                               re.MULTILINE)
-        for label, char in cre_event.findall(input_file.read()):
-            print('''    case %s: return "%s";''' % (char, label), file=output)
+        cre_event = re.compile(r"^\s+(?P<label>\w+).*(?P<char>'.');", re.MULTILINE)
+        for label, char in cre_event.findall(input_file.read().decode()):
+            print(f'''    case {char}: return "{label}";''', file=output)
 
     print('''
     default: return "<unknown event>";
@@ -34,16 +34,14 @@ inline std::string event_label(uint8_t event) {
     return output
 
 
-def parse_args(argv=None):
+def parse_args(argv: Optional[sys.argv] = None):
     """Parses arguments, returns (options, args)."""
-    from argparse import ArgumentParser
-
     if argv is None:
         argv = sys.argv[1:]
 
     parser = ArgumentParser(description='Generate a C++ header containing '
-                            'labels for event characters from a Ragel FSM '
-                            'definition.')
+                                        'labels for event characters from a Ragel FSM '
+                                        'definition.')
     parser.add_argument('-f', '--force_overwrite', action='store_true',
                         default=False)
     parser.add_argument('-o', '--output_path', type=path, default=None)
@@ -60,9 +58,8 @@ if __name__ == '__main__':
         if args.output_path.isfile() and not args.force_overwrite:
             # The output-path exists, but `overwrite` was not enabled, so raise
             # exception.
-            raise IOError('Output path `%s` already exists.  Specify '
-                          '`overwrite=True` to force overwrite.' %
-                          args.output_path)
+            raise IOError(f'Output path `{args.output_path}` already exists. '
+                          f'Specify `overwrite=True` to force overwrite.')
         output = args.output_path.open('wb')
     try:
         generate_ragel_events_header(args.input_file, output)

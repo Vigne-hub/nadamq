@@ -1,5 +1,6 @@
 *.egg-info/*
 *.o
+*.so
 *.pyc
 MANIFEST
 .sconsign.dblite
@@ -8,9 +9,12 @@ dist/*
 dist/*
 nadamq/NadaMq.cpp
 nadamq/NadaMq.pyd
+nadamq/src/packet.cpp
 nadamq/src/packet_actions.cpp
+nadamq/src/packet_socket_fsm.cpp
+nadamq/src/packet_socket_fsm_actions.cpp
 *~
 *.*~
 paver-minilib.zip
-setup.py
 *.pyc
+build

@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+# coding: utf-8
 from nadamq.NadaMq import cPacket, parse_from_string, PACKET_TYPES
 import nose.tools as nt
 
@@ -30,9 +30,9 @@ def test_parse_nack():
 
 
 def test_parse_id_response():
-    '''
+    """
     .. versionadded:: 0.13
-    '''
+    """
     a = cPacket(iuid=1234, type_=PACKET_TYPES.ID_RESPONSE,
                 data=b'{"id": "my device name"}')
     b = parse_from_string(a.tobytes())
@@ -44,9 +44,9 @@ def test_parse_id_response():
 
 
 def test_parse_id_request():
-    '''
+    """
     .. versionadded:: 0.13
-    '''
+    """
     a = cPacket(iuid=1234, type_=PACKET_TYPES.ID_REQUEST)
     b = parse_from_string(a.tobytes())
 

@@ -38,8 +38,7 @@ if CYTHON_BUILD:
 else:
     ext_config = dict(include_dirs=include_dirs,
                       extra_compile_args=['-O3'])
-    extensions = [Extension('nadamq.%s' % v, sources + ['nadamq/%s.cpp' % v],
-                            **ext_config) for v in ('NadaMq', )]
+    extensions = [Extension('nadamq.%s' % v, sources + ['nadamq/%s.cpp' % v], **ext_config) for v in ('NadaMq', )]
 pprint(extensions)
 
 setup(name='nadamq',
@@ -108,3 +107,21 @@ def build_ext():
 def sdist():
     """Overrides sdist to make sure that our setup.py is generated."""
     pass
+
+
+NADAMQ_HEADERS = 'NadaMQ.h output_buffer.h packet_handler.h'.split(' ')
+PACKET_HEADERS = 'BufferAllocator.h Packet.h PacketAllocator.h PacketHandler.h PacketParser.h PacketSocket.h PacketSocketEvents.h PacketStream.h PacketWriter.h SimpleCommand.h StreamPacketParser.h crc-16.cpp crc-16.h crc_common.cpp crc_common.h packet_actions.cpp'.split(' ')
+
+import os
+import shutil
+import platformio_helpers as pioh
+import path_helpers as ph
+src_dir = ph.path('{{ SRC_DIR }}').joinpath('{{ MODULE_NAME }}', 'src')
+install_dir = pioh.conda_arduino_include_path().joinpath('{{ LIB_NAME }}')
+os.makedirs(install_dir, exist_ok=True)
+for file_i in NADAMQ_HEADERS:
+    src_file = src_dir.joinpath('Arduino', 'packet_handler', '{{ file_i }}')
+    shutil.copy2(str(src_file), str(install_dir.joinpath(src_file.name)))
+
+for file_i in PACKET_HEADERS:
+    shutil.copy2(str(src_dir.joinpath('{{ file_i }}')), str(install_dir.joinpath('{{ file_i }}')))

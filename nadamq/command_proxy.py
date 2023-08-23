@@ -1,29 +1,27 @@
-from __future__ import absolute_import
-from __future__ import print_function
-from pprint import pprint
-from datetime import datetime
+# coding: utf-8
 import re
-from pprint import pformat
 import time
+import serial
 
 import numpy as np
+
+from datetime import datetime
+from pprint import pformat
+from typing import Dict, Callable, List, Any, Tuple
+
 from nadamq.NadaMq import (cPacket, PACKET_TYPES, cPacketParser)
-import serial
-import six
-from six.moves import range
 
 
-# Function to convert from camel-case to underscore separated.  Taken from
-# [here][1].
-#
-# [1]: https://djangosnippets.org/snippets/585/
-def camelcase_to_underscore(value):
-    return re.sub('(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))', '_\\1',
-                  value).lower().strip('_')
+def camelcase_to_underscore(value: str) -> str:
+    """
+    Function to convert from camel-case to underscore separated.
+    Taken from https://djangosnippets.org/snippets/585/
+    """
+    return re.sub('(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))', '_\\1', value).lower().strip('_')
 
 
-class CommandRequestManagerBase(object):
-    '''
+class CommandRequestManagerBase:
+    """
     This class acts as a factory for creating Protocol buffer command request
     objects.
 
@@ -93,75 +91,75 @@ class CommandRequestManagerBase(object):
 
     The `command_type_class` argument must be the Python Protocol buffer
     enumerated command type class _(e.g., `CommandType`)_.
-    '''
-    def __init__(self, request_types, request_class, response_class,
-                 command_type_class):
+    """
+
+    def __init__(self, request_types: Dict,
+                 request_class: Callable,
+                 response_class: Callable,
+                 command_type_class: Callable) -> None:
         self.request_types = request_types
         self.request_class = request_class
         self.response_class = response_class
         self.command_type_class = command_type_class
 
     @property
-    def command_names(self):
-        '''
+    def command_names(self) -> List[str]:
+        """
         Return a list containing the camel-case name of each available command.
-        '''
+        """
         return list(self.request_types.keys())
 
-    def request(self, request_type_name, **kwargs):
-        '''
+    def request(self, request_type_name: str, **kwargs: Any) -> bytes:
+        """
         Return a serialized Protocol buffer message instance corresponding to
         the provided request type name _(e.g., `'MyCommandA'`)_.
 
         __NB__ Any provided keyword arguments are passed on to the Protocol
         buffer message class constructor, allowing initial values to be set on
         the message.
-        '''
+        """
         lowercase = camelcase_to_underscore(request_type_name)
-        command_kwargs = {lowercase:
-                          self.request_types[request_type_name](**kwargs)}
+        command_kwargs = {lowercase: self.request_types[request_type_name](**kwargs)}
         return self.request_class(**command_kwargs).SerializeToString()
 
-    def response(self, byte_data):
-        '''
+    def response(self, byte_data: bytes) -> Any:
+        """
         Return a Protocol Buffer response object deserialized from the provided
         string of encoded message bytes.
-        '''
+        """
         response = self.response_class.FromString(byte_data)
         sub_response = response.ListFields()[0][1]
         return sub_response
 
 
 class CommandRequestManagerDebug(CommandRequestManagerBase):
-    def request(self, request_type_name, **kwargs):
-        encoded_request = super(CommandRequestManagerDebug,
-                                self).request(request_type_name, **kwargs)
-        print('# `%sRequest` #' % request_type_name)
+    def request(self, request_type_name: str, **kwargs: Any) -> bytes:
+        encoded_request = super(CommandRequestManagerDebug, self).request(request_type_name, **kwargs)
+        print(f'# `{request_type_name}Request` #')
         print('')
         print(' - Arguments:')
-        for k, v in six.iteritems(kwargs):
-            print('  - `%s`: `%s`' % (k, v))
+        for k, v in kwargs.items():
+            print(f'  - `{k}`: `{v}`')
         data = np.fromstring(encoded_request, dtype=np.uint8)
-        print(' - Encoded: `%s`' % repr(data.tostring()))
-        print('            `%s`' % data)
+        print(f' - Encoded: `{repr(data.tostring())}`')
+        print(f'            `{data}`')
         print('')
         return encoded_request
 
-    def response(self, byte_data):
-        '''
+    def response(self, byte_data: bytes) -> Tuple:
+        """
         Return a Protocol Buffer response object deserialized from the provided
         string of encoded message bytes, along with the raw byte data.  This is
         useful for determining the length of the encoded protocol buffer
         message, and/or debugging.
-        '''
-        sub_response = super(CommandRequestManagerDebug,
-                             self).response(byte_data)
+        """
+        sub_response = super(CommandRequestManagerDebug, self).response(byte_data)
         return sub_response, byte_data
 
 
 class CommandRequestManager(CommandRequestManagerBase):
-    def response(self, byte_data):
-        '''
+    def response(self, byte_data: bytes) -> Any:
+        """
         Return a response based on the provided string of encoded message
         bytes.
 
@@ -170,13 +168,13 @@ class CommandRequestManager(CommandRequestManagerBase):
         `result` field, return the specific response object _(e.g.,
         `MyCommandAResponse`)_ to give the caller a chance to manually retrieve
         the return value.
-        '''
+        """
         sub_response = super(CommandRequestManager, self).response(byte_data)
         return getattr(sub_response, 'result', sub_response)
 
 
-class NodeProxy(object):
-    '''
+class NodeProxy:
+    """
     This class uses a command request manager to automatically populate methods
     to expose the API of a remote node, where the interface to the remote node
     is provided through the specified `stream` instance.
@@ -206,24 +204,29 @@ class NodeProxy(object):
       - `read(count=None)`: Read the specified number of bytes from the stream.
         If `count` is `None`, read as many bytes as are currently available.
       - `write(data)`: Write the specified data to the stream.
-    '''
-    def __init__(self, command_request_manager, stream, timeout=None):
+    """
+
+    def __init__(self, command_request_manager: CommandRequestManagerBase,
+                 stream: 'Stream', timeout: float = None) -> None:
         timeout = 1.5 if timeout is None else timeout
         self._timeout = timeout
         self._stream = stream
         self._command_request_manager = command_request_manager
         self._initialize_methods()
 
-    def _do_request(self, name):
-        # Note that we need to use [partial function application][1]
-        # here so we can encapsulate the current value of
-        # `command_name` from this loop iteration when calling the
-        # associated generated method outside of this loop.  If we
-        # _don't_ create the `f` function below, the `name` variable
-        # would refer to the last `command_name` value visited by the
-        # loop in all methods, which is _not_ the behaviour we want.
-        #
-        # [1]: http://en.wikipedia.org/wiki/Partial_application
+    def _do_request(self, name: str) -> Callable:
+        """
+        Note that we need to use [partial function application][1]
+        here we can encapsulate the current value of
+        `command_name` from this loop iteration when calling the
+        associated generated method outside of this loop.  If we
+        _don't_ create the `f` function below, the `name` variable
+        would refer to the last `command_name` value visited by the
+        loop in all methods, which is _not_ the behaviour we want.
+
+        [1]: http://en.wikipedia.org/wiki/Partial_application
+        """
+
         def f(**kwargs):
             retry_count = kwargs.pop('retry_count', 10)
             remote_address = kwargs.pop('remote_address', None)
@@ -233,11 +236,10 @@ class NodeProxy(object):
                                                                     **kwargs)
                     return (getattr(self, 'forward_i2c_request')
                             (address=remote_address, request=request))
+
                 command_func = _remote_func
             else:
-                command_func = (lambda **kwargs:
-                                self._do_request_from_command_name(
-                                    name, **kwargs))
+                command_func = (lambda **kwargs: self._do_request_from_command_name(name, **kwargs))
             for i in range(retry_count):
                 try:
                     return command_func(**kwargs)
@@ -245,31 +247,34 @@ class NodeProxy(object):
                     exception_str = str(exception)
                     if not exception_str.startswith('Timeout'):
                         raise
-            raise exception
+                    raise exception
+
         return f
 
-    def _initialize_methods(self):
-        # Add method for each type of request discovered from `requests`
-        # module.
-        #
-        # For instance, for the following list of command names:
-        #
-        #     ['MyCommandA', 'MyCommandB']
-        #
-        # the following methods will be created:
-        #
-        #  - `my_command_a(**kwargs)`
-        #  - `my_command_b(**kwargs)`
-        #
-        # where the `kwargs` will be passed along to the corresponding command.
+    def _initialize_methods(self) -> None:
+        """
+        Add method for each type of request discovered from `requests`
+        module.
+
+        For instance, for the following list of command names:
+
+            ['MyCommandA', 'MyCommandB']
+
+        the following methods will be created:
+
+         - `my_command_a(**kwargs)`
+         - `my_command_b(**kwargs)`
+
+        where the `kwargs` will be passed along to the corresponding command.
+        """
         for command_name in self._command_request_manager.command_names:
             method_name = camelcase_to_underscore(command_name)
             setattr(self, method_name, self._do_request(command_name))
 
-    def _do_request_from_command_name(self, command_name, iuid=0, **kwargs):
+    def _do_request_from_command_name(self, command_name: str,
+                                      iuid: int = 0, **kwargs: Any) -> Any:
         request = self._command_request_manager.request(command_name, **kwargs)
-        packet = cPacket(iuid=iuid, type_=PACKET_TYPES.DATA,
-                         data=request)
+        packet = cPacket(iuid=iuid, type_=PACKET_TYPES.DATA, data=request)
         # Flush any remaining bytes from stream.
         self._stream.read()
         # Write request packet to stream.
@@ -278,15 +283,14 @@ class NodeProxy(object):
         data = np.array([ord(v) for v in self._stream.read()], dtype='uint8')
         start = datetime.now()
         wait_counts = 0
+        response_packet = None
         try:
             result = parser.parse(data)
             while not result:
-                data = np.array([ord(v) for v in self._stream.read()],
-                                dtype='uint8')
+                data = np.array([ord(v) for v in self._stream.read()], dtype='uint8')
                 result = parser.parse(data)
                 if (datetime.now() - start).total_seconds() > self._timeout:
-                    raise ValueError('Timeout while waiting for packet.\n"%s"'
-                                     % (pformat(data.tostring())))
+                    raise ValueError(f'Timeout while waiting for packet.\n"{pformat(data.tostring())}"')
                 if not result:
                     time.sleep(0.0001)
                     wait_counts += 1
@@ -294,8 +298,7 @@ class NodeProxy(object):
                     response_packet = result
                     break
         except RuntimeError:
-            raise ValueError('Error parsing response packet.\n"%s"' %
-                             (pformat(data.tostring())))
+            raise ValueError(f'Error parsing response packet.\n"{pformat(data.tostring())}"')
         if response_packet.type_ == PACKET_TYPES.DATA:
             if command_name == 'ForwardI2cRequest':
                 # This was a forwarded request, so we must return the undecoded
@@ -306,12 +309,11 @@ class NodeProxy(object):
                 return (self._command_request_manager
                         .response(response_packet.data()))
         else:
-            raise ValueError('Invalid response. (%s).\n"%s"' %
-                             (response_packet.type_, pformat(data)))
+            raise ValueError(f'Invalid response. ({response_packet.type_}).\n"{pformat(data)}"')
 
 
-class Stream(object):
-    '''
+class Stream:
+    """
     This class defines an API that a stream class must implement to be used by
     a `NodeProxy` instance.
 
@@ -327,19 +329,20 @@ class Stream(object):
      - Add `timeout` option for `read` method, which, when set, raises an
        exception if the specified number of bytes is not read after the
        specified timeout.
-    '''
-    def available(self):
+    """
+
+    def available(self) -> int:
         raise NotImplementedError
 
-    def read(self, count):
+    def read(self, count: int = None) -> bytes:
         raise NotImplementedError
 
-    def write(self, data):
+    def write(self, data: bytes) -> None:
         raise NotImplementedError
 
 
-class SerialStream(object):
-    '''
+class SerialStream:
+    """
     This class provides an adapter around the `serial.Serial` class to expose
     the following API:
 
@@ -348,14 +351,15 @@ class SerialStream(object):
       - `read(count=None)`: Read the specified number of bytes from the stream.
         If `count` is `None`, read as many bytes as are currently available.
       - `write(data)`: Write the specified data to the stream.
-    '''
-    def __init__(self, *args, **kwargs):
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._serial = None
         self._args = args
         self._kwargs = kwargs
         self.reconnect()
 
-    def reconnect(self):
+    def reconnect(self) -> None:
         if self._serial is not None:
             self._serial.close()
         self._serial = serial.Serial(*self._args, **self._kwargs)
@@ -363,73 +367,79 @@ class SerialStream(object):
         # Flush welcome message.
         print(self.read())
 
-    def available(self):
+    def available(self) -> int:
         return self._serial.inWaiting()
 
-    def read(self, count=None):
+    def read(self, count: int = None) -> bytes:
         if count is None:
             count = self.available()
         else:
             count = min(self.available(), count)
         return self._serial.read(count)
 
-    def write(self, data):
+    def write(self, data: bytes) -> None:
         self._serial.write(data)
 
 
-class RemoteNodeProxy(object):
-    '''
+class RemoteNodeProxy:
+    """
     By default, this class forwards all method calls through a connected device
-    '''
+    """
 
-    def __init__(self, forward_proxy, remote_address, command_request_manager):
+    def __init__(self, forward_proxy: 'NodeProxy',
+                 remote_address: int,
+                 command_request_manager: CommandRequestManagerBase) -> None:
         self._forward_proxy = forward_proxy
         self._remote_address = remote_address
         self._command_request_manager = command_request_manager
         self._initialize_methods()
 
-    def _initialize_methods(self):
-        # Add method for each type of request discovered from `requests`
-        # module.
-        #
-        # For instance, for the following list of command names:
-        #
-        #     ['MyCommandA', 'MyCommandB']
-        #
-        # the following methods will be created:
-        #
-        #  - `my_command_a(**kwargs)`
-        #  - `my_command_b(**kwargs)`
-        #
-        # where the `kwargs` will be passed along to the corresponding command.
+    def _initialize_methods(self) -> None:
+        """
+        Add method for each type of request discovered from `requests`
+        module.
+
+        For instance, for the following list of command names:
+
+            ['MyCommandA', 'MyCommandB']
+
+        the following methods will be created:
+
+         - `my_command_a(**kwargs)`
+         - `my_command_b(**kwargs)`
+
+        where the `kwargs` will be passed along to the corresponding command.
+        """
         for command_name in self._command_request_manager.command_names:
             method_name = camelcase_to_underscore(command_name)
             setattr(self, method_name, self._do_request(command_name))
 
-    def _do_request(self, name):
-        # Note that we need to use [partial function application][1]
-        # here so we can encapsulate the current value of
-        # `command_name` from this loop iteration when calling the
-        # associated generated method outside of this loop.  If we
-        # _don't_ create the `f` function below, the `name` variable
-        # would refer to the last `command_name` value visited by the
-        # loop in all methods, which is _not_ the behaviour we want.
-        #
-        # [1]: http://en.wikipedia.org/wiki/Partial_application
+    def _do_request(self, name: str) -> Callable:
+        """
+        Note that we need to use [partial function application][1]
+        here we can encapsulate the current value of
+        `command_name` from this loop iteration when calling the
+        associated generated method outside of this loop.  If we
+        _don't_ create the `f` function below, the `name` variable
+        would refer to the last `command_name` value visited by the
+        loop in all methods, which is _not_ the behaviour we want.
+
+        [1]: http://en.wikipedia.org/wiki/Partial_application
+        """
+
         def f(**kwargs):
             retry_count = kwargs.pop('retry_count', 10)
 
             def _remote_func(**kwargs):
-                request = self._command_request_manager.request(name,
-                                                                **kwargs)
+                request = self._command_request_manager.request(name, **kwargs)
                 # Responses from `forward_i2c_request` requests are raw byte
                 # streams.  It is our responsibility, as the source of a
                 # `forward_i2c_request` request, to decode the raw response
                 # bytes, since the forwarder may not provide the same API.
-                return self._command_request_manager.response(
-                    self._forward_proxy
-                    .forward_i2c_request(address=self._remote_address,
-                                         request=request))
+                return self._command_request_manager.response(self._forward_proxy
+                                                              .forward_i2c_request(address=self._remote_address,
+                                                                                   request=request))
+
             command_func = _remote_func
             for i in range(retry_count):
                 try:
@@ -438,5 +448,6 @@ class RemoteNodeProxy(object):
                     exception_str = str(exception)
                     if not exception_str.startswith('Timeout'):
                         raise
-            raise exception
+                    raise exception
+
         return f

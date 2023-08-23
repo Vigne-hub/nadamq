@@ -10,7 +10,7 @@ class GitError(Exception):
     pass
 
 
-class GitUtil(object):
+class GitUtil:
     def __init__(self, root_path='.'):
         self.root_path = path(root_path)
         if root_path is None:
