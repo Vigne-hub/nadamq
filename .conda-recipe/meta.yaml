@@ -25,7 +25,10 @@ build:
 
 requirements:
   build:
+    - {{ compiler('cxx') }}
+    - {{ compiler('c') }}
     - python >=3.8
+    - ragel # [win]
     - versioneer
     - pint
     - numpy
@@ -47,7 +50,7 @@ outputs:
       run:
         - dropbot-headers
   - name: {{ PKG_NAME }}
-    platform: osx-64
+    platform: {{ target_platform }}
     files:
       - Lib/site-packages/{{ MODULE_NAME }} # [win]
       - {{ PREFIX }}/lib/python{{ python }}/site-packages/{{ MODULE_NAME }} # [unix]
