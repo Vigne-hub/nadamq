@@ -16,18 +16,16 @@ build:
   number: 0
   script:
     # Create Cpp files and copy Arduino library files to Conda Arduino library.
-    - python file_handler.py {{ SRC_DIR }} {{ PREFIX }} {{ MODULE_NAME }} {{ LIB_NAME }}
+    - python file_handler.py {{ SRC_DIR }} {{ PREFIX }} {{ PKG_NAME }} {{ MODULE_NAME }} {{ LIB_NAME }}
     # Run setup
     - python setup.py install --single-version-externally-managed --record record.txt
-    # Run build tests
+   # Run build tests
 #    - nosetests -v nadamq\tests # [win]
 #    - nosetests -v nadamq/tests # [not win]
 
 requirements:
   build:
-    - {{ compiler('cxx') }}
-    - {{ compiler('c') }}
-    - python >=3.8
+    - python {{ python }}
     - ragel # [win]
     - versioneer
     - pint
@@ -53,10 +51,10 @@ outputs:
     platform: {{ target_platform }}
     files:
       - Lib/site-packages/{{ MODULE_NAME }} # [win]
-      - {{ PREFIX }}/lib/python{{ python }}/site-packages/{{ MODULE_NAME }} # [unix]
+      - lib/python{{ python }}/site-packages/{{ MODULE_NAME }} # [unix]
     requirements:
       run:
-        - python >=3.8
+        - python {{ python }}
         - {{ pin_subpackage(PKG_NAME + '-dev', max_pin='x.x') }}
         - pint
         - numpy

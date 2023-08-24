@@ -24,9 +24,13 @@ PACKET_HEADERS = ['BufferAllocator.h',
                   'packet_actions.cpp']
 
 
-def create_cpp_from_ragel(source_dir: str, prefix: str, module_name: str) -> None:
+def create_cpp_from_ragel(**kwargs) -> None:
     import subprocess
     import platform
+
+    source_dir = kwargs.get('source_dir')
+    prefix = kwargs.get('prefix')
+    module_name = kwargs.get('module_name')
 
     source_dir = path(source_dir).joinpath(module_name, 'src')
     prefix = path(prefix)
@@ -46,7 +50,11 @@ def create_cpp_from_ragel(source_dir: str, prefix: str, module_name: str) -> Non
         print(f"Generated {target}")
 
 
-def transfer(source_dir: str, module_name: str, lib_name: str) -> None:
+def transfer(**kwargs) -> None:
+    source_dir = kwargs.get('source_dir')
+    module_name = kwargs.get('module_name')
+    lib_name = kwargs.get('lib_name')
+
     source_dir = path(source_dir).joinpath(module_name, 'src')
     install_dir = pioh.conda_arduino_include_path().joinpath(lib_name)
     install_dir.makedirs(exist_ok=True)
@@ -66,15 +74,24 @@ def transfer(source_dir: str, module_name: str, lib_name: str) -> None:
 
 def cli_parser():
     parser = argparse.ArgumentParser(description='Transfer header files to include directory.')
-    parser.add_argument('source_dir', help='Source directory containing header files')
-    parser.add_argument('prefix', help='Source directory containing header files')
-    parser.add_argument('module_name', help='Source directory containing header files')
-    parser.add_argument('lib_name', help='Source directory containing header files')
+    parser.add_argument('source_dir')
+    parser.add_argument('prefix')
+    parser.add_argument('package_name')
+    parser.add_argument('module_name')
+    parser.add_argument('lib_name')
 
     args = parser.parse_args()
+    execute(**vars(args))
 
-    create_cpp_from_ragel(args.source_dir, args.prefix, args.module_name)
-    transfer(args.source_dir, args.module_name, args.lib_name)
+
+def execute(**kwargs):
+    top = '>' * 180
+    print(top)
+
+    create_cpp_from_ragel(**kwargs)
+    transfer(**kwargs)
+
+    print('<' * len(top))
 
 
 if __name__ == '__main__':

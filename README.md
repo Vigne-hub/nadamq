@@ -16,9 +16,9 @@ Install `conda-build`:
 
     conda install "conda-build>=3.4.2"
 
-Build Python 2.7 and Python 3 packages:
+Build Python 3 packages:
 
-    conda build .conda-recipe -m .conda-recipe/variants.yaml
+    conda build .conda-recipe
 
 
 Install
@@ -26,7 +26,7 @@ Install
 
 Install the latest release from the [`sci-bots` Conda channel][sci-bots] using:
 
-    conda install -c sci-bots nadamq
+    conda install -c alexsk nadamq
 
 
 [sci-bots]: https://anaconda.org/sci-bots
