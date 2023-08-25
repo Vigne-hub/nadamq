@@ -27,6 +27,7 @@ requirements:
   build:
     - python {{ python }}
     - ragel # [win]
+    - ntfsutils # [win]
     - versioneer
     - pint
     - numpy
@@ -61,6 +62,7 @@ outputs:
         - pyserial
         - or-event
         - path-helpers
+        - ntfsutils # [win]
         - platformio-helpers
     test:
       imports:
