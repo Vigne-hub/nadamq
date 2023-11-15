@@ -25,7 +25,7 @@ build:
 
 requirements:
   build:
-    - python {{ python }}
+    - python >=3.8
     - ragel # [win]
     - ntfsutils # [win]
     - versioneer
@@ -51,11 +51,10 @@ outputs:
   - name: {{ PKG_NAME }}
     platform: {{ target_platform }}
     files:
-      - Lib/site-packages/{{ MODULE_NAME }} # [win]
-      - lib/python{{ python }}/site-packages/{{ MODULE_NAME }} # [unix]
+      - {{ SP_DIR }}/{{ MODULE_NAME }}
     requirements:
       run:
-        - python {{ python }}
+        - python >=3.8
         - {{ pin_subpackage(PKG_NAME + '-dev', max_pin='x.x') }}
         - pint
         - numpy
