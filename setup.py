@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
+import os
 import versioneer
 
 from path_helpers import path
@@ -26,7 +27,10 @@ sources = [str(source) for source in sources]
 
 if CYTHON_BUILD:
     # Cython build: Convert .pyx to .cpp and compile
-    cy_config = dict(include_dirs=include_dirs, language='c++', extra_compile_args=['-O3'])
+    if os.name == 'nt':
+        cy_config = dict(include_dirs=include_dirs, language='c++')
+    else:
+        cy_config = dict(include_dirs=include_dirs, language='c++', extra_compile_args=['-O3'])
     extensions = cythonize([Extension('nadamq.NadaMq', sources, **cy_config)])
 else:
     # Pre-generated .cpp sources build
@@ -45,7 +49,7 @@ setup(
     license='GPL',
     # packages=['nadamq'],
     packages=find_namespace_packages(include=['nadamq*']),
-    python_requires='>=3.8',
+    python_requires='>=3.6',
     include_package_data=True,
     ext_modules=extensions
 )

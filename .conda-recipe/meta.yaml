@@ -10,10 +10,21 @@ package:
   name: {{ PKG_NAME }}
   version: {{ GIT_VERSION }}
 
+c_compiler:
+  - m2w64-gcc # [win]
+  - clang # [osx]
+  - gcc # [linux]
+
+cxx_compiler:
+  - m2w64-g++ # [win]
+  - clang++ # [osx]
+  - g++ # [linux]
+
 build:
   # If this is a new build for the same version, increment the build
   # number. If you do not include this key, it defaults to 0.
   number: 0
+  platform: {{ target_platform }}
   script:
     # Create Cpp files and copy Arduino library files to Conda Arduino library.
     - python file_handler.py {{ SRC_DIR }} {{ PREFIX }} {{ PKG_NAME }} {{ MODULE_NAME }} {{ LIB_NAME }}
@@ -25,20 +36,27 @@ build:
 
 requirements:
   build:
-    - python >=3.8
+    - python >=3.6
     - ragel # [win]
     - ntfsutils # [win]
+    - libpython # [win]
+    - m2w64-toolchain # [win]
     - versioneer
     - pint
     - numpy
     - cmake
+    - clang
+    - libclang
+    - python-clang
     - cython
     - pyserial
     - or-event
     - path-helpers
+    - clang-helpers
     - platformio-helpers
     - dropbot-headers
-
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
 
 outputs:
   - name: {{ PKG_NAME }}-dev
@@ -54,7 +72,7 @@ outputs:
       - {{ SP_DIR }}/{{ MODULE_NAME }}
     requirements:
       run:
-        - python >=3.8
+        - python >=3.6
         - {{ pin_subpackage(PKG_NAME + '-dev', max_pin='x.x') }}
         - pint
         - numpy
