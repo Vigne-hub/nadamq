@@ -33,7 +33,7 @@ requirements:
     - msinttypes  # [win and py2k]
     - versioneer
     - pint
-    - numpy >=1.15
+    - numpy
     - cmake
     - cython
     - pyserial
@@ -60,7 +60,7 @@ outputs:
         - python >=3.6
         - {{ pin_subpackage(PKG_NAME + '-dev', max_pin='x.x') }}
         - pint
-        - numpy >=1.15
+        - numpy
         - pyserial
         - or-event
         - path-helpers
