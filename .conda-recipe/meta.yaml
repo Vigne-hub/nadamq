@@ -42,35 +42,17 @@ requirements:
     - platformio-helpers
     - dropbot-headers
 
+  run:
+    - python >=3.8
+    - pint
+    - numpy
+    - pyserial
+    - or-event
+    - path-helpers
+    - ntfsutils # [win]
+    - platformio-helpers
+    - dropbot
 
-outputs:
-  - name: {{ PKG_NAME }}-dev
-    noarch: generic
-    files:
-      - share/*
-    requirements:
-      run:
-        - dropbot-headers
-
-  - name: {{ PKG_NAME }}
-    platform: {{ target_platform }}
-    files:
-      - {{ SP_DIR }}/{{ MODULE_NAME }}/*
-    requirements:
-      run:
-        - python >=3.6
-        - {{ PKG_NAME }}-dev {{ GIT_VERSION }}.*
-        - pint
-        - numpy
-        - pyserial
-        - or-event
-        - path-helpers
-        - ntfsutils # [win]
-        - platformio-helpers
-    test:
-      imports:
-        - {{ MODULE_NAME }}
-        - {{ MODULE_NAME }}.{{ LIB_NAME }}
 
 about:
   home: https://github.com/sci-bots/{{ PKG_NAME }}
