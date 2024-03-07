@@ -43,7 +43,7 @@ import sys
 import re
 import os
 import platform
-from itertools import imap
+
 from subprocess import check_call, CalledProcessError
 import json
 
@@ -75,14 +75,16 @@ def same_file(p1, p2):
 
 def get_usb_tty(rx):
     usb_ttys = glob(rx)
-    if len(usb_ttys) == 1: return usb_ttys[0]
-    else: return None
+    if len(usb_ttys) == 1:
+        return usb_ttys[0]
+    else:
+        return None
 
 
 def gather_sources(source_root):
     source_root = path(source_root)
-    return source_root.files('*.c') + source_root.files('*.cpp') +\
-                    source_root.files('*.S')
+    return source_root.files('*.c') + source_root.files('*.cpp') + \
+        source_root.files('*.S')
 
 
 def get_lib_candidate_list(sketch_path, arduino_version):
@@ -118,11 +120,11 @@ class ArduinoBuildContext:
             self.build_root = path('build')
         else:
             self.build_root = path(build_root)
-	self.build_root = self.build_root.abspath()
+        self.build_root = self.build_root.abspath()
         self.core_root = self.build_root.joinpath('core')
-	if not self.core_root.isdir():
-	    self.core_root.makedirs_p()
-	print('[build-core directory] %s (%s)' % (self.core_root,
+        if not self.core_root.isdir():
+            self.core_root.makedirs_p()
+        print('[build-core directory] %s (%s)' % (self.core_root,
                                                   self.core_root.isdir()))
         self.resolve_config_vars()
 
@@ -162,9 +164,9 @@ class ArduinoBuildContext:
             if self.ARDUINO_HOME:
                 self.AVR_HOME = self.resolve_var('AVR_HOME',
                                                  '%s' % os.path
-						 .join(self.ARDUINO_HOME,
-						       'hardware', 'tools',
-						       'avr', 'bin'))
+                                                 .join(self.ARDUINO_HOME,
+                                                       'hardware', 'tools',
+                                                       'avr', 'bin'))
         else:
             # For Ubuntu Linux (12.04 or higher)
             self.ARDUINO_HOME = self.resolve_var('ARDUINO_HOME',
@@ -198,17 +200,17 @@ class ArduinoBuildContext:
                                          os.path.dirname(self.ARDUINO_CONF),
                                          'cores',
                                          self.get_board_conf('build.core',
-                                                           'arduino'))
+                                                             'arduino'))
         self.ARDUINO_SKEL = os.path.join(self.ARDUINO_CORE, 'main.cpp')
 
         if self.ARDUINO_VER == 0:
             arduinoHeader = os.path.join(self.ARDUINO_CORE, 'Arduino.h')
-            #print "No Arduino version specified. Discovered version",
+            # print "No Arduino version specified. Discovered version",
             if os.path.exists(arduinoHeader):
-                #print "100 or above"
+                # print "100 or above"
                 self.ARDUINO_VER = 100
             else:
-                #print "0023 or below"
+                # print "0023 or below"
                 self.ARDUINO_VER = 23
         else:
             print("Arduino version " + self.ARDUINO_VER + " specified")
@@ -227,11 +229,9 @@ class ArduinoBuildContext:
         if self.SKETCHBOOK_HOME:
             self.ARDUINO_LIBS.append(os.path.join(self.SKETCHBOOK_HOME, 'libraries'))
 
-
         # Override MCU and F_CPU
         self.MCU = self.ARGUMENTS.get('MCU', self.get_board_conf('build.mcu'))
         self.F_CPU = self.ARGUMENTS.get('F_CPU', self.get_board_conf('build.f_cpu'))
-
 
         # Verify that there is a file with the same name as the folder and with
         # the extension .pde
@@ -250,7 +250,7 @@ class ArduinoBuildContext:
                     # There is a single file that matches an Arduino file
                     # extension, so assume it is the main sketch file.
                     TARGET = possible_files[0].namebase
-        assert(TARGET is not None)
+        assert (TARGET is not None)
 
         print(os.getcwd(), TARGET)
 
@@ -284,7 +284,7 @@ class ArduinoBuildContext:
         # check given board name, ARDUINO_BOARD is valid one
         arduino_boards = os.path.join(self.ARDUINO_HOME, 'hardware/*/boards.txt')
         custom_boards = os.path.join(self.SKETCHBOOK_HOME,
-                                  'hardware/*/boards.txt')
+                                     'hardware/*/boards.txt')
         board_files = glob(arduino_boards) + glob(custom_boards)
         board_cre = re.compile(r'^([^#]*)\.name=(.*)')
         boards = {}
@@ -300,7 +300,7 @@ class ArduinoBuildContext:
             print("all available board names are:")
             for name, description in boards.items():
                 print("\t%s for %s" % (name.ljust(14), description[0]))
-            #print "however, you may edit %s to add a new board." % ARDUINO_CONF
+            # print "however, you may edit %s to add a new board." % ARDUINO_CONF
             sys.exit(-1)
         return boards[board_name][1]
 
@@ -314,7 +314,7 @@ class ArduinoBuildContext:
         ret = default
         if ret == None:
             print("ERROR! can't find %s in %s" % (conf, self.ARDUINO_CONF))
-            assert(False)
+            assert (False)
         return ret
 
     def get_env(self, **kwargs):
@@ -340,10 +340,10 @@ class ArduinoBuildContext:
                             AS='"' + self.AVR_BIN_PREFIX + 'gcc"',
                             CPPPATH=[self.core_root],
                             CPPDEFINES={'F_CPU': self.F_CPU, 'ARDUINO':
-                                        self.ARDUINO_VER},
+                                self.ARDUINO_VER},
                             CFLAGS=c_flags + ['-std=gnu99'], CCFLAGS=c_flags,
-                            ASFLAGS=['-assembler-with-cpp','-mmcu=%s' %
-                                     self.MCU], TOOLS=['gcc','g++', 'as'])
+                            ASFLAGS=['-assembler-with-cpp', '-mmcu=%s' %
+                                     self.MCU], TOOLS=['gcc', 'g++', 'as'])
 
         hw_variant = os.path.join(self.ARDUINO_HOME,
                                   'hardware/arduino/variants',
@@ -353,7 +353,7 @@ class ArduinoBuildContext:
 
         for k, v in kwargs.items():
             print('processing kwarg: %s->%s' % (k, v))
-            if k in env_defaults and isinstance(env_defaults[k], dict)\
+            if k in env_defaults and isinstance(env_defaults[k], dict) \
                     and isinstance(v, dict):
                 env_defaults[k].update(v)
                 print('  update dict')
@@ -446,29 +446,29 @@ class ArduinoBuildContext:
 
     def get_elf_builder(self):
         return Builder(action='"%s"' % (self.AVR_BIN_PREFIX + 'gcc') +
-                       ' -mmcu=%s -Os -Wl,--gc-sections -o $TARGET $SOURCES '
-                       '-lm' % ( self.MCU))
+                              ' -mmcu=%s -Os -Wl,--gc-sections -o $TARGET $SOURCES '
+                              '-lm' % (self.MCU))
 
     def get_hex_builder(self):
         return Builder(action='"%s"' % (self.AVR_BIN_PREFIX + 'objcopy') +
-                       ' -O ihex -R .eeprom $SOURCES $TARGET')
+                              ' -O ihex -R .eeprom $SOURCES $TARGET')
 
     def get_buildinfo_builder(self):
         return Builder(action=self.print_info_action)
 
     def compress_core_action(self, target, source, env):
         import re
-        #core_pattern = re.compile(r'build.*/core/'.replace('/', os.path.sep))
+        # core_pattern = re.compile(r'build.*/core/'.replace('/', os.path.sep))
         core_pattern = re.compile(r'build.*core')
-        core_files = (x for x in imap(str, source) if core_pattern.search(x))
-	target_path = path(target[0]).abspath()
-	if not target_path.parent.isdir():
-	    target_path.parent.makedirs_p()
+        core_files = (x for x in map(str, source) if core_pattern.search(x))
+        target_path = path(target[0]).abspath()
+        if not target_path.parent.isdir():
+            target_path.parent.makedirs_p()
         for core_file in core_files:
-	    core_file_path = path(core_file).abspath()
-	    print('[compress_core_action]', core_file_path, core_file_path.isfile())
-	    command = [self.AVR_BIN_PREFIX + 'ar', 'rcs', target_path,
-		       core_file_path]
+            core_file_path = path(core_file).abspath()
+            print('[compress_core_action]', core_file_path, core_file_path.isfile())
+            command = [self.AVR_BIN_PREFIX + 'ar', 'rcs', target_path,
+                       core_file_path]
             run(command)
 
     def print_info_action(self, target, source, env):
@@ -485,13 +485,13 @@ class ArduinoBuildContext:
         wp = open(str(target[0]), 'wb')
         wp.write(open(self.ARDUINO_SKEL).read())
 
-        types='''void
+        types = '''void
                 int char word long
                 float double byte long
                 boolean
                 uint8_t uint16_t uint32_t
                 int8_t int16_t int32_t'''
-        types=' | '.join(types.split())
+        types = ' | '.join(types.split())
         re_signature = re.compile(r'''^\s* (
             (?: (%s) \s+ )?
             \w+ \s*
@@ -544,7 +544,7 @@ class ArduinoBuildContext:
         env.Processing(hex_root.joinpath(self.TARGET + '.cpp'),
                        hex_root.joinpath(self.sketch_path))
 
-        sources = [hex_root.joinpath(self.TARGET+'.cpp')]
+        sources = [hex_root.joinpath(self.TARGET + '.cpp')]
         sources += self.get_lib_sources(env)
         if extra_sources:
             sources += [hex_root.joinpath(s) for s in extra_sources]
@@ -554,8 +554,8 @@ class ArduinoBuildContext:
 
         core_objs = env.Object(core_sources)
         objs = env.Object(sources)
-	objs += env.CompressCore(self.core_root.joinpath('core.a').abspath(),
-			         core_objs)
+        objs += env.CompressCore(self.core_root.joinpath('core.a').abspath(),
+                                 core_objs)
 
         elf_path = hex_root.joinpath(self.TARGET + '.elf')
         env.Elf(elf_path, objs)
@@ -569,9 +569,9 @@ class ArduinoBuildContext:
 
         if register_upload:
             fuse_cmd = '"%s" %s' % (os.path.join(os.path
-                                               .dirname(self.AVR_BIN_PREFIX),
-                                               'avrdude'),
-                                  ' '.join(self.get_avrdude_options()))
+                                                 .dirname(self.AVR_BIN_PREFIX),
+                                                 'avrdude'),
+                                    ' '.join(self.get_avrdude_options()))
             print(fuse_cmd)
 
             if self.RST_TRIGGER:
@@ -579,7 +579,7 @@ class ArduinoBuildContext:
             else:
                 reset_cmd = self.pulse_dtr
 
-	    upload = env.Alias('upload', hex_path, [reset_cmd, fuse_cmd])
+            upload = env.Alias('upload', hex_path, [reset_cmd, fuse_cmd])
             env.AlwaysBuild(upload)
 
         # Clean build directory

@@ -43,33 +43,11 @@ requirements:
     - dropbot-headers
 
 
-outputs:
-  - name: {{ PKG_NAME }}-dev
-    noarch: generic
-    files:
-      - share
-    requirements:
-      run:
-        - dropbot-headers
-  - name: {{ PKG_NAME }}
-    platform: {{ target_platform }}
-    files:
-      - {{ SP_DIR }}/{{ MODULE_NAME }}
-    requirements:
-      run:
-        - python >=3.6
-        - {{ pin_subpackage(PKG_NAME + '-dev', max_pin='x.x') }}
-        - pint
-        - numpy
-        - pyserial
-        - or-event
-        - path-helpers
-        - ntfsutils # [win]
-        - platformio-helpers
-    test:
-      imports:
-        - {{ MODULE_NAME }}
-        - {{ MODULE_NAME }}.{{ LIB_NAME }}
+
+  test:
+    imports:
+      - {{ MODULE_NAME }}
+      - {{ MODULE_NAME }}.{{ LIB_NAME }}
 
 about:
   home: https://github.com/sci-bots/{{ PKG_NAME }}

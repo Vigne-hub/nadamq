@@ -11,7 +11,7 @@ home_dir = path('~').expand()
 
 ARDUINO_SEARCH_PATHS = [home_dir, ]
 if os.name == 'nt':
-    from win32com.shell import shell, shellcon
+    from win32comext.shell import shell, shellcon
     mydocs = shell.SHGetFolderPath(0, shellcon.CSIDL_PERSONAL, 0, 0)
     AVRDUDE_NAME = 'avrdude.exe'
     ARDUINO_SEARCH_PATHS += [path(mydocs), 
