@@ -41,7 +41,8 @@ requirements:
     - path-helpers
     - platformio-helpers
     - dropbot-headers
-
+    - scons
+    - pip
 
 outputs:
   - name: {{ PKG_NAME }}-dev
@@ -64,6 +65,7 @@ outputs:
         - pyserial
         - or-event
         - path-helpers
+        - scons
         - ntfsutils # [win]
         - platformio-helpers
     test:
