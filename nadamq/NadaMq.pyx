@@ -1,7 +1,7 @@
 # cython: embedsignature = True
 # cython: language_level = 3
 # distutils: language = c++
-# distutils: libraries = c++
+
 cimport cython
 from cython.operator cimport dereference as deref
 from libc.stdint cimport uint16_t
