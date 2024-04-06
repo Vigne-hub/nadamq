@@ -51,7 +51,6 @@ requirements:
     - path-helpers
     - ntfsutils # [win]
     - platformio-helpers
-    - dropbot
 
 
 about:
