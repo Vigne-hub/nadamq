@@ -51,6 +51,7 @@ requirements:
     - path-helpers
     - ntfsutils # [win]
     - platformio-helpers
+    - m2w64-gcc-libs-core==5.3.0=7
 
 
 about:
