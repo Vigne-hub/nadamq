@@ -68,6 +68,7 @@ outputs:
         - scons
         - ntfsutils # [win]
         - platformio-helpers
+        - m2w64-toolchain # [win]
     test:
       imports:
         - {{ MODULE_NAME }}
