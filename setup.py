@@ -26,15 +26,17 @@ sources = [str(source) for source in sources]
 # print(f"{'-' * 100}\n", sources, f"{'-' * 100}\n")
 
 if CYTHON_BUILD:
+    compiler_directives = {"language_level": 3, "embedsignature": True}
     # Cython build: Convert .pyx to .cpp and compile
     if os.name == 'nt':
-        cy_config = dict(include_dirs=include_dirs, language='c++')
+        cy_config = dict(include_dirs=include_dirs, language='c++', compiler_directives=compiler_directives)
     else:
-        cy_config = dict(include_dirs=include_dirs, language='c++', extra_compile_args=['-O3'])
-    extensions = cythonize([Extension('nadamq.NadaMq', sources, **cy_config)])
+        cy_config = dict(include_dirs=include_dirs, language='c++', compiler_directives=compiler_directives)
+    _extensions = [Extension('nadamq.NadaMq', sources, **cy_config)]
+    extensions = cythonize(_extensions)
 else:
     # Pre-generated .cpp sources build
-    ext_config = dict(include_dirs=include_dirs, extra_compile_args=['-O3'])
+    ext_config = dict(include_dirs=include_dirs)
     extensions = [Extension('nadamq.NadaMq', sources, **ext_config)]
 
 setup(

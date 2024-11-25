@@ -1,14 +1,9 @@
-{% if GIT_DESCRIBE_NUMBER > '0' %}
-{% set GIT_VERSION = GIT_DESCRIBE_TAG[1:] + '.post' + GIT_DESCRIBE_NUMBER %}
-{% else %}
-{% set GIT_VERSION = GIT_DESCRIBE_TAG[1:] %}
-{% endif %}
 {% set PKG_NAME = 'nadamq' %}
 {% set MODULE_NAME = 'nadamq' %}
 {% set LIB_NAME = 'NadaMQ' %}
 package:
   name: {{ PKG_NAME }}
-  version: {{ GIT_VERSION }}
+  version: 0.20.5
 
 build:
   # If this is a new build for the same version, increment the build
@@ -16,12 +11,8 @@ build:
   number: 0
   script:
     # Create Cpp files and copy Arduino library files to Conda Arduino library.
-    - python file_handler.py {{ SRC_DIR }} {{ PREFIX }} {{ PKG_NAME }} {{ MODULE_NAME }} {{ LIB_NAME }}
-    # Run setup
-    - python setup.py install --single-version-externally-managed --record record.txt
-   # Run build tests
-#    - nosetests -v nadamq\tests # [win]
-#    - nosetests -v nadamq/tests # [not win]
+    - make clean
+    - make install
 
 requirements:
   build:
@@ -29,14 +20,14 @@ requirements:
     - ragel # [win]
     - ntfsutils # [win]
     - libpython # [win]
-    - m2w64-toolchain # [win]
     - msinttypes  # [win and py2k]
     - versioneer
     - pint
     - numpy
     - cmake
+    - make
     - cython
-    - pyserial
+    - pyserialy
     - or-event
     - path-helpers
     - platformio-helpers
@@ -68,7 +59,7 @@ outputs:
         - scons
         - ntfsutils # [win]
         - platformio-helpers
-        - m2w64-toolchain # [win]
+
     test:
       imports:
         - {{ MODULE_NAME }}
