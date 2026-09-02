@@ -1,0 +1,55 @@
+[project]
+name = "nadamq"
+version = "0.20.10.post1"
+description = "Embedded-friendly transport layer, inspired by ZeroMQ."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "GPL-3.0-or-later"
+license-files = ["COPYING"]
+
+[project.urls]
+Homepage = "https://github.com/Vigne-hub/nadamq"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# Package data is selected by MANIFEST.in.
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["nadamq*"]
+
+# --- pixi -----------------------------------------------------------------
+# `pixi build` builds the conda package(s) through the rattler-build backend
+# from recipe/recipe.yaml.
+# Binary dependencies are declared in the recipe, not here.
+[tool.pixi.workspace]
+channels = ["conda-forge", "alexsk", "vignesh229", "https://prefix.dev/vigne-hub/scibots"]
+platforms = ["win-64", "linux-64"]
+preview = ["pixi-build"]
+
+[tool.pixi.package]
+name = "nadamq"
+version = "0.20.10.post1"
+
+[tool.pixi.package.build.backend]
+name = "pixi-build-rattler-build"
+version = "0.*"
+channels = ["https://prefix.dev/conda-forge"]
+
+# --- commitizen -----------------------------------------------------------
+# `cz bump` derives the next version from Conventional Commits, stamps every
+# copy of the version below, updates CHANGELOG.md and tags vX.Y.Z.
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_provider = "pep621"
+tag_format = "v$version"
+bump_message = "chore: release v$new_version [skip ci]"
+update_changelog_on_bump = true
+version_files = [
+    "pyproject.toml:^version",
+    "nadamq/_version.py:^__version__",
+    "recipe/recipe.yaml:^  version",
+]

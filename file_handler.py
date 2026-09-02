@@ -1,4 +1,5 @@
 # coding: utf-8
+import os
 import argparse
 
 import platformio_helpers as pioh
@@ -74,11 +75,11 @@ def transfer(**kwargs) -> None:
 
 def cli_parser():
     parser = argparse.ArgumentParser(description='Transfer header files to include directory.')
-    parser.add_argument('source_dir')
-    parser.add_argument('prefix')
-    parser.add_argument('package_name')
-    parser.add_argument('module_name')
-    parser.add_argument('lib_name')
+    parser.add_argument('source_dir', nargs='?', default=os.environ.get('SRC_DIR', '.'))
+    parser.add_argument('prefix', nargs='?', default=os.environ.get('PREFIX'))
+    parser.add_argument('package_name', nargs='?', default='nadamq')
+    parser.add_argument('module_name', nargs='?', default='nadamq')
+    parser.add_argument('lib_name', nargs='?', default='NadaMQ')
 
     args = parser.parse_args()
     execute(**vars(args))

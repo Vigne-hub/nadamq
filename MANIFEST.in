@@ -1,4 +1,3 @@
-include setup.py
 recursive-include nadamq src/packet_actions.cpp
 recursive-include nadamq src/crc_common.cpp
 recursive-include nadamq src/crc-16.cpp
@@ -17,6 +16,5 @@ recursive-exclude */__pycache__
 recursive-exclude nadamq */__pycache__
 exclude __pycache__
 exclude nadamq/__pycache__
-include versioneer.py
 include nadamq/_version.py
 exclude nadamq/src/dump_events_header.py

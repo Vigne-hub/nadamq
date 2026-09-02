@@ -1,0 +1,121 @@
+# rattler-build recipe, driven by `pixi build` / `pixi upload` (see
+# pyproject.toml). Ported from the former conda-build .conda-recipe/meta.yaml.
+#
+# file_handler.py generates the RPC/Arduino artefacts and copies the Arduino
+# library into $PREFIX/share/platformio/include; pip installs the Python
+# package. Two packages, like the old recipe's outputs:
+#   nadamq-dev  (noarch generic)  share/: Arduino headers
+#   nadamq      (noarch python)   the Python package; pins -dev
+# Each output is built on its own (the pixi backend does not forward the
+# workspace channels to rattler-build's staging cache).
+#
+# Generated from scibots-package-template; edit there and `copier update`.
+context:
+  name: nadamq
+  version: "0.20.10.post1"
+
+recipe:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  path: ..
+  # Several sci-bots repos force-track files under gitignored directories
+  # (e.g. the Arduino library under <module>/Arduino/library/*), so the
+  # gitignore cannot select the sources; exclude the obvious junk instead.
+  use_gitignore: false
+  filter:
+    exclude:
+      - .git/**
+      - .pixi/**
+      - .pio/**
+      - build/**
+      - dist/**
+      - .idea/**
+      - "**/__pycache__/**"
+      - "**/*.pyc"
+
+build:
+  number: 0
+
+outputs:
+  - package:
+      name: ${{ name }}-dev
+    build:
+      noarch: generic
+      script:
+        # SRC_DIR / PREFIX / package name default from the build environment.
+        - python file_handler.py
+      files:
+        - share/**
+    requirements:
+      host:
+        - python
+        - pip
+        - setuptools
+        - pint
+        - numpy
+        - pyserial
+        - or-event
+        - path-helpers
+        - platformio-helpers
+        - dropbot-headers
+        - scons
+        - ragel
+        # path-helpers imports ntfsutils on Windows
+        - if: win
+          then: ntfsutils
+      run:
+        - dropbot-headers
+    about:
+      homepage: https://github.com/Vigne-hub/nadamq
+      license: GPL-3.0-or-later
+      license_file: COPYING
+      summary: Embedded-friendly transport layer, inspired by ZeroMQ. (Arduino headers)
+
+  - package:
+      name: ${{ name }}
+    build:
+      noarch: python
+      script:
+        - python file_handler.py
+        - python -m pip install . --no-deps --no-build-isolation -vv
+      files:
+        - "**/site-packages/nadamq/**"
+        - "**/site-packages/nadamq-*.dist-info/**"
+    requirements:
+      host:
+        - python
+        - pip
+        - setuptools
+        - pint
+        - numpy
+        - pyserial
+        - or-event
+        - path-helpers
+        - platformio-helpers
+        - dropbot-headers
+        - scons
+        - ragel
+        - if: win
+          then: ntfsutils
+      run:
+        - python >=3.9
+        - ${{ pin_subpackage(name + '-dev', upper_bound='x.x') }}
+        - pint
+        - numpy
+        - pyserial
+        - or-event
+        - path-helpers
+        - scons
+        - platformio-helpers
+    tests:
+      - python:
+          imports:
+            - nadamq
+          pip_check: false
+    about:
+      homepage: https://github.com/Vigne-hub/nadamq
+      license: GPL-3.0-or-later
+      license_file: COPYING
+      summary: Embedded-friendly transport layer, inspired by ZeroMQ.

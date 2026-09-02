@@ -1,0 +1,37 @@
+# Changes here will be overwritten by Copier; do not edit manually.
+_commit: v0.4.1
+_src_path: https://github.com/Vigne-hub/scibots-package-template.git
+channel_ref: vigne-hub/scibots
+default_branch: master
+description: Embedded-friendly transport layer, inspired by ZeroMQ.
+dev_run_dependencies:
+    dropbot-headers: '*'
+flavor: headers
+homepage: https://github.com/Vigne-hub/nadamq
+host_dependencies:
+    dropbot-headers: '*'
+    numpy: '*'
+    or-event: '*'
+    path-helpers: '*'
+    pint: '*'
+    platformio-helpers: '*'
+    pyserial: '*'
+    ragel: '*'
+    scons: '*'
+lib_name: NadaMQ
+license: GPL-3.0-or-later
+license_file: COPYING
+module_name: nadamq
+package_dir: .
+package_name: nadamq
+python_min: '3.9'
+run_dependencies:
+    numpy: '*'
+    or-event: '*'
+    path-helpers: '*'
+    pint: '*'
+    platformio-helpers: '*'
+    pyserial: '*'
+    scons: '*'
+scripts: {}
+version: 0.20.10.post1

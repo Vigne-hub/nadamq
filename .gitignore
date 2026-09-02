@@ -18,3 +18,5 @@ nadamq/src/packet_socket_fsm_actions.cpp
 paver-minilib.zip
 *.pyc
 build
+# pixi
+.pixi/
